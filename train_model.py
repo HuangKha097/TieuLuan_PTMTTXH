@@ -10,27 +10,27 @@ from sklearn.metrics import classification_report, accuracy_score, confusion_mat
 import joblib
 import numpy as np
 
-# =============================
-# ⚙️ CẤU HÌNH
-# =============================
+
+# CẤU HÌNH
+
 EXCEL_FILE_PATH = './du_lieu_tin_tuc.xlsx'   # Dữ liệu 1000 dòng
 TEXT_COLUMN_NAME = 'content'
 LABEL_COLUMN_NAME = 'label'
 VIETNAMESE_STOPWORDS_PATH = './vietnamese-stopwords.txt'
 MODEL_SAVE_PATH = './fake_news_rf_model.pkl'
-# =============================
 
-# -----------------------------
-# 🧩 HÀM XỬ LÝ DỮ LIỆU
-# -----------------------------
+
+
+#  HÀM XỬ LÝ DỮ LIỆU
+
 def load_stopwords(file_path):
     """Đọc danh sách stopword tiếng Việt."""
     if not os.path.exists(file_path):
-        print(f"⚠️ Không tìm thấy file stopword tại '{file_path}'. Bỏ qua.")
+        print(f" Không tìm thấy file stopword tại '{file_path}'. Bỏ qua.")
         return []
     with open(file_path, 'r', encoding='utf-8') as f:
         stopwords = [line.strip() for line in f if line.strip()]
-    print(f"✅ Tải {len(stopwords)} stopword thành công.")
+    print(f" Tải {len(stopwords)} stopword thành công.")
     return stopwords
 
 def preprocess_text(text):
@@ -54,7 +54,7 @@ def load_data(file_path, text_col, label_col):
     try:
         df = pd.read_excel(file_path)
         if text_col not in df.columns or label_col not in df.columns:
-            print(f"❌ Thiếu cột '{text_col}' hoặc '{label_col}'.")
+            print(f" Thiếu cột '{text_col}' hoặc '{label_col}'.")
             sys.exit(1)
 
         df[text_col] = df[text_col].apply(preprocess_text)
@@ -63,29 +63,29 @@ def load_data(file_path, text_col, label_col):
         df = df[df[text_col].str.len() > 0]
         df[label_col] = df[label_col].astype(int)
 
-        print(f"✅ Dữ liệu hợp lệ: {len(df)} mẫu")
-        print("📊 Thống kê nhãn:")
+        print(f" Dữ liệu hợp lệ: {len(df)} mẫu")
+        print(" Thống kê nhãn:")
         print(df[label_col].value_counts())
         return df[text_col], df[label_col]
     except Exception as e:
-        print(f"❌ Lỗi đọc dữ liệu: {e}")
+        print(f" Lỗi đọc dữ liệu: {e}")
         sys.exit(1)
 
-# -----------------------------
-# 🚀 HÀM CHÍNH
-# -----------------------------
+
+#  HÀM CHÍNH
+
 def main():
-    print("🚀 Bắt đầu huấn luyện mô hình Random Forest phân loại tin thật/giả...")
+    print(" Bắt đầu huấn luyện mô hình Random Forest phân loại tin thật/giả...")
     stopwords = load_stopwords(VIETNAMESE_STOPWORDS_PATH)
 
     if not os.path.exists(EXCEL_FILE_PATH):
-        print(f"❌ Không tìm thấy file '{EXCEL_FILE_PATH}'")
+        print(f" Không tìm thấy file '{EXCEL_FILE_PATH}'")
         return
 
     X, y = load_data(EXCEL_FILE_PATH, TEXT_COLUMN_NAME, LABEL_COLUMN_NAME)
 
     # TF-IDF
-    print("🔤 Trích xuất đặc trưng TF-IDF...")
+    print(" Trích xuất đặc trưng TF-IDF...")
     tfidf = TfidfVectorizer(
         tokenizer=vi_tokenizer,
         stop_words=stopwords if stopwords else None,
@@ -95,7 +95,7 @@ def main():
     )
 
     X_tfidf = tfidf.fit_transform(X)
-    print(f"✅ Số lượng đặc trưng: {len(tfidf.get_feature_names_out())}")
+    print(f" Số lượng đặc trưng: {len(tfidf.get_feature_names_out())}")
 
     # Mô hình Random Forest
     rf_model = RandomForestClassifier(
@@ -109,9 +109,9 @@ def main():
     )
 
     # Cross Validation (5-fold)
-    print("🧪 Đang đánh giá mô hình (5-fold cross validation)...")
+    print(" Đang đánh giá mô hình (5-fold cross validation)...")
     scores = cross_val_score(rf_model, X_tfidf, y, cv=5, scoring='accuracy')
-    print(f"📈 Độ chính xác trung bình: {scores.mean()*100:.2f}%")
+    print(f" Độ chính xác trung bình: {scores.mean()*100:.2f}%")
 
     # Chia dữ liệu train/test
     X_train, X_test, y_train, y_test = train_test_split(
@@ -119,29 +119,29 @@ def main():
     )
 
     # Huấn luyện mô hình
-    print("🌲 Huấn luyện Random Forest...")
+    print(" Huấn luyện Random Forest...")
     rf_model.fit(X_train, y_train)
-    print("✅ Huấn luyện hoàn tất!")
+    print("Huấn luyện hoàn tất!")
 
     # Đánh giá
     y_pred = rf_model.predict(X_test)
-    print("\n📊 Ma trận nhầm lẫn:")
+    print("\n Ma trận nhầm lẫn:")
     print(confusion_matrix(y_test, y_pred))
-    print("\n📋 Báo cáo chi tiết:")
+    print("\n Báo cáo chi tiết:")
     print(classification_report(y_test, y_pred, target_names=['Thật (0)', 'Giả (1)']))
 
-    print(f"🎯 Độ chính xác kiểm thử: {accuracy_score(y_test, y_pred)*100:.2f}%")
+    print(f"Độ chính xác kiểm thử: {accuracy_score(y_test, y_pred)*100:.2f}%")
 
     # Lưu mô hình
     joblib.dump((rf_model, tfidf), MODEL_SAVE_PATH)
-    print(f"💾 Đã lưu mô hình vào: {MODEL_SAVE_PATH}")
+    print(f" Đã lưu mô hình vào: {MODEL_SAVE_PATH}")
 
     # Dự đoán thử
-    print("\n--- 🔮 DỰ ĐOÁN THỬ ---")
+    print("\n--- DỰ ĐOÁN THỬ ---")
     test_articles = [
-        "Bộ Y tế khuyến cáo người dân tiêm phòng cúm mùa để phòng dịch.",
-        "Toàn bộ người dân sẽ được nhận 10 triệu đồng từ Chính phủ trong tháng tới.",
-        "Uống nước lá đu đủ chữa được ung thư giai đoạn cuối.",
+        "Nhân chứng kể lại phút đối mặt với tên cướp ngân hàng.",
+        "Bức vẽ giúp bạn đánh giá mức độ stress của bản thân.",
+        "Cô giáo ở Quảng Bình bắt trò tát bạn học 230 cái.",
         "Giá xăng dầu trong nước tăng nhẹ theo thị trường thế giới.",
         "Cảnh báo mã độc mới lây qua Facebook chỉ bằng cách nhấn Like."
     ]
@@ -150,9 +150,9 @@ def main():
         vec = tfidf.transform([clean_text])
         pred = rf_model.predict(vec)[0]
         prob = rf_model.predict_proba(vec)[0][pred]
-        print(f"\n📰 {text}")
+        print(f"\n{text}")
         print(f"→ Dự đoán: {'Giả (1)' if pred == 1 else 'Thật (0)'} (Độ tin cậy: {prob*100:.2f}%)")
 
-# -----------------------------
+# ---
 if __name__ == "__main__":
     main()
